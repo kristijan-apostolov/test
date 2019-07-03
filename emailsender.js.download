@@ -1,0 +1,3 @@
+﻿var sendEmail = function (id) {
+    $.post("sendmail", $('#' + id + ' input').serialize());
+}

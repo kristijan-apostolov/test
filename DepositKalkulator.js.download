@@ -1,0 +1,329 @@
+﻿MoznostiDepositCalculator =
+{
+    ONE_DAY: 1000 * 60 * 60 * 24,
+    _addPercent: 0,
+    _kamataIznos: 0,
+    _basicInterest: 0,
+    _currCalcInt: null, //kamati za tekoven kalkulator
+    _currCalc: null, //tekoven kalkulator
+    _months: null,   //celot objekt meseci zaedno so nivnite nazivi
+    deposit: 0,
+    currency: "",
+    period: 0,
+    dType: 0,
+    fillCurrencies: function () {
+        $("#CurrencyType").empty();
+        if (!!this._currCalc) {
+            for (var valuta in this._currCalc.Currencies) {
+                $("#CurrencyType").append("<option value='" + this._currCalc.Currencies[valuta].Value + "'>"
+                    + this._currCalc.Currencies[valuta].Name + "</option>");
+            }
+        }
+    },
+    fillMonthlyPeriods: function () {
+        $("#Period").empty();
+        if (!!caclsInt) {
+            for (var k in caclsInt) {
+                if (caclsInt[k].Id == this.dType.toString()) {
+                    this._currCalcInt = caclsInt[k];
+                }
+            }
+        }
+
+        for (var k in calcs) {
+            if (calcs[k].Id == this.dType.toString()) {
+                this._currCalc = calcs[k];
+            }
+        }
+        this.fillCurrencies();
+        if (!!this._currCalcInt) {
+            for (var rate in this._currCalcInt.Terms) {
+
+                if (rate.toString() == '1' && this.dType.toString() == '1') {
+                    $("#Period").append("<option selected='selected' value='" + this._currCalcInt.Terms[rate].Period + "' data-interest='"
+                        + this._currCalcInt.Terms[rate].Interest + "'>"
+                        + this._getPeriodName(this._currCalcInt.Terms[rate].Period) + "</option>");
+                }
+                else {
+                    $("#Period").append("<option value='" + this._currCalcInt.Terms[rate].Period + "' data-interest='" + this._currCalcInt.Terms[rate].Interest + "'>"
+                        + this._getPeriodName(this._currCalcInt.Terms[rate].Period) + "</option>");
+                }
+
+            }
+        }
+    },
+    timeSpanDays: function () {
+
+        var dt = new Date();
+        var dt1 = new Date();
+        //var dt = new Date("February 12, 2015 15:33:00");
+        //var dt1 = new Date("February 12, 2015 15:33:00");
+        dt1.setMonth(dt1.getMonth() + parseInt(this.period.toString()));
+        var ms1 = dt1.getTime();
+        var ms = dt.getTime();
+        var raz = null;
+        var raz = ((ms1 - ms) / this.ONE_DAY);
+        //Brojot na denovi
+        //return parseInt(raz.toString());
+        return Math.round(raz.toString());
+    },
+    addSeparatorsNF: function (nStr, inD, outD, sep) {
+        nStr += '';
+        var dpos = nStr.indexOf(inD);
+        var nStrEnd = '';
+        if (dpos != -1) {
+            nStrEnd = outD + nStr.substring(dpos + 1, nStr.length);
+            nStr = nStr.substring(0, dpos);
+        }
+        var rgx = /(\d+)(\d{3})/;
+        while (rgx.test(nStr)) {
+            nStr = nStr.replace(rgx, '$1' + sep + '$2');
+        }
+        return nStr + nStrEnd;
+    },
+    fillVariables: function () {
+        this.dType = parseInt($("select[id$=DepositType] option:selected").val());
+        if (!!calcs) {
+            this._currCalc = calcs[this.dType - 1];
+        }
+        this.period = parseInt($("#Period option:selected").val());
+        this.currency = $("#CurrencyType option:selected").text();
+        this.deposit = parseFloat($("#DepositValue").val());
+        this._basicInterest = parseFloat($("#Period option:selected").attr("data-interest"));
+        if (!!caclsInt && !!this._currCalc) {
+            for (var v in caclsInt) {
+                if (caclsInt[v].Id.toString() == this._currCalc.Id.toString()) {
+                    this._currCalcInt = caclsInt[v];
+                }
+            }
+        }
+        if (!!months)
+            MoznostiDepositCalculator._months = months;
+
+    },
+    calculate: function () {
+        var osnova = null;
+        var stepen = null;
+        this._addPercent = 0;
+
+        if (this.dType == 1) {
+            switch (this.period) {
+            case 0:
+                this._addPercent = 0.02;
+                break;
+            case 1:
+                this._addPercent = 0.05;
+                break;
+            case 3:
+                this._addPercent = 0.5;
+                break;
+            case 6:
+                this._addPercent = 1;
+                break;
+            case 12:
+                this._addPercent = 1.75;
+                break;
+            case 24:
+                this._addPercent = 2.75;
+                break;
+            case 36:
+                this._addPercent = 3.00;
+                break;
+            default:
+            }
+            osnova = (1 + ((this._addPercent) / 100));
+            stepen = (parseInt(this.timeSpanDays().toString()) / 365);
+            this._kamataIznos = (Math.pow(osnova, stepen) - 1) * this.deposit;
+
+        } else if (this.dType == 3) {
+            switch (this.period) {
+
+            case 6:
+                this._addPercent = 0.75;
+                break;
+            case 12:
+                this._addPercent = 1.5;
+                break;
+            case 18:
+                this._addPercent = 1.75;
+                break;
+            case 24:
+                this._addPercent = 2;
+                break;
+            default:
+            }
+            osnova = (1 + ((this._addPercent) / 100));
+            stepen = (parseInt(this.timeSpanDays().toString()) / 365);
+            this._kamataIznos = (Math.pow(osnova, stepen) - 1) * this.deposit;
+        } else {
+            //if (((this.dType == 1) && ((this.period != 0) && ((this.period != 24) && (this.period != 36))))) {
+            //    if ((this.deposit > 99999.5)) {
+
+            //        if (((this.deposit > 99999.5) && (this.deposit <= 299999.5))) {
+
+            //            this._addPercent = 0.5;
+
+            //        }
+            //        if (((this.deposit > 299999.5) && (this.deposit <= 599999.5))) {
+            //            this._addPercent = 0.75;
+
+            //        }
+            //        if ((this.deposit > 599999.5)) {
+            //            this._addPercent = 1;
+            //        }
+            //    }
+            //}
+
+
+            //if (((this.dType == 1) && ((this.deposit != 0) && ((this.period == 24) || (this.period == 36))))) {
+            //    if ((this.deposit > 99999.5)) {
+            //        if (((this.deposit > 99999.5) && (this.deposit <= 599999.5))) {
+            //            this._addPercent = 0.25;
+
+            //        }
+            //        if ((this.deposit > 599999.5)) {
+            //            this._addPercent = 0.5;
+            //        }
+            //    }
+            //}
+            //if (((this.dType == 1) && ((this.deposit != 0) && ((this.period == 1) || (this.period == 3) || (this.period == 6) || (this.period == 12))))) {
+            //    if ((this.deposit >= 100000)) {
+            //        if (((this.deposit >= 100000) && (this.deposit < 300000))) {
+            //            this._addPercent = 0.25;
+
+            //        }
+            //    }
+            //    if ((this.deposit >= 300000)) {
+            //        if (((this.deposit >= 300000) && (this.deposit < 600000))) {
+            //            this._addPercent = 0.5;
+            //        }
+            //    }
+            //    if ((this.deposit >= 600000)) {
+            //        this._addPercent = 0.75;
+            //    }
+            //}
+
+            //if (((this.dType == 3) && ((this.period != 18) && (this.period != 24)))) {
+            //    if ((this.deposit > 99999.5)) {
+            //        if (((this.deposit > 99999.5) && (this.deposit <= 599999.5))) {
+            //            this._addPercent = 0.25;
+            //        }
+            //        if ((this.deposit > 599999.5)) {
+            //            this._addPercent = 0.5;
+            //        }
+            //    }
+            //}
+            ////novo baranje od Moznosti 30.10.2014, dodatni stimulacii
+            //if (((this.dType == 1) && ((this.deposit != 0) && ((this.period == 6) || (this.period == 12) || (this.period == 24) || (this.period == 36))))) {
+            //    if ((this.deposit >= 600000)) {
+            //        this._addPercent = 0;
+
+            //    } else {
+            //        this._addPercent = 0;
+            //    }
+            //}
+            //if (((this.dType == 3) && ((this.deposit != 0) && ((this.period == 6) || (this.period == 12))))) {
+            //    if ((this.deposit >= 600000)) {
+            //        this._addPercent = 0; 
+            //    } else {
+            //        this._addPercent = 0;
+            //    }
+            //}
+            ////novo baranje od Moznosti 01.12.2014, dodatni stimulacii
+            //if (((this.dType == 1) && ((this.deposit != 0) && ((this.period == 1) || (this.period == 3))))) {
+            //    if ((this.deposit >= 600000)) {
+            //        this._addPercent = 0;
+            //    }
+            //    if ((this.deposit >= 100000)) {
+            //        if (((this.deposit >= 100000) && (this.deposit < 300000))) {
+            //            this._addPercent = 0;
+            //        }
+            //    }
+            //    if ((this.deposit >= 300000)) {
+            //        if (((this.deposit >= 300000) && (this.deposit < 600000))) {
+            //            this._addPercent = 0;
+            //        }
+            //    }
+            //}
+
+            osnova = (1 + ((this._basicInterest) / 100));
+            stepen = (parseInt(this.timeSpanDays().toString()) / 365);
+            this._kamataIznos = (Math.pow(osnova, stepen) - 1) * this.deposit;
+        }
+
+
+
+        $("#lblVrednost").text(this.addSeparatorsNF(this.deposit, '.', ',', '.'));
+        $("#lblCurName").text(this.currency);
+        $("#lblDepType").text(this._currCalc.TitleRez.toString());
+        $("#lblPeriod").text(this.period.toString());
+
+
+        $("#lblIntAmount").text(this.addSeparatorsNF(this._kamataIznos.toFixed(2).toString(), '.', ',', '.'));
+
+        $("#lblTotal").text(this.addSeparatorsNF((this.deposit + this._kamataIznos).toFixed(2).toString(), '.', ',', '.'));
+        if (this.dType != 2) {
+            $("#lblIntRate").text(this.addSeparatorsNF((this._addPercent).toString(), '.', ',', '.') + " %");
+
+        } else {
+            $("#lblIntRate").text(this.addSeparatorsNF((this._basicInterest + this._addPercent).toString(), '.', ',', '.') + " %");
+        }
+
+
+        $("#TabelaVnes").hide();
+        $("#TabelaRez").show();
+
+
+    },
+    _getPeriodName: function (p) {
+        for (var m in this._months) {
+            if (this._months[m].Id.toString() == p.toString()) {
+                rezult = this._months[m].Title.toString();
+            }
+        }
+        return rezult;
+    }
+}
+
+
+function BackToCalc() {
+    $("#TabelaRez").hide();
+    $("#TabelaVnes").show();
+    $("select[id$=DepositType] option:selected").removeAttr("selected");
+    $("select[id$=DepositType]").children().first().attr('selected', 'selected');
+    $("#DepositValue").val("");
+    fillContent();
+}
+
+$(document).ready(function () {
+
+    MoznostiDepositCalculator.fillVariables();
+    MoznostiDepositCalculator.fillCurrencies();
+    MoznostiDepositCalculator.fillMonthlyPeriods();
+    $("#TabelaRez").hide();
+});
+
+function Calculate() {
+    if (($("#DepositValue").val() != "") && (isNumeric($("#DepositValue").val()))) {
+        MoznostiDepositCalculator.fillVariables();
+        MoznostiDepositCalculator.calculate();
+
+    }
+    else {
+        alert(errMsg);
+        $("#DepositValue").val("");
+        $("#DepositValue").focus();
+    }
+}
+
+function fillContent() {
+    MoznostiDepositCalculator.fillVariables();
+    MoznostiDepositCalculator.fillCurrencies();
+    MoznostiDepositCalculator.fillMonthlyPeriods();
+}
+
+function isNumeric(n) {
+    var n2 = n;
+    n = parseFloat(n);
+    return (n != NaN && n2 == n);
+}
